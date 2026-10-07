@@ -20,7 +20,7 @@ def explosion_color(progress):
 
 def on_city_destroyed(city):
     """Called when a city is hit; add screen shake, sounds, or a game-over warning here."""
-    print(f"City destroyed at x={int(city.pos.x)}. Defend the remaining cities!")
+    return f"CITY DESTROYED at x={int(city.pos.x)}!"
 
 
 def city_repair_threshold():
@@ -98,6 +98,8 @@ class Game:
         self.cities = [City(x) for x in xs]
         self.score, self.wave, self.state = 0, 1, "play"
         self.repairs_awarded = 0
+        self.city_warning = None
+        self.city_warning_timer = 0.0
         self.start_wave()
 
     def start_wave(self):
@@ -126,6 +128,8 @@ class Game:
             self.missiles.append(Missile(random.choice(targets), 45 + self.wave * 6))
 
     def update(self, dt):
+        if self.city_warning_timer > 0:
+            self.city_warning_timer = max(0.0, self.city_warning_timer - dt)
         if self.state != "play":
             return
         threshold = city_repair_threshold()
@@ -163,7 +167,8 @@ class Game:
         if target.alive:
             target.alive = False
             if isinstance(target, City):
-                on_city_destroyed(target)
+                self.city_warning = on_city_destroyed(target)
+                self.city_warning_timer = 3.0
         self.explosions.append(Explosion(missile.pos, 30))
         if not any(c.alive for c in self.cities):
             self.state = "lose"
@@ -201,6 +206,9 @@ class Game:
         if self.state == "lose":
             label = self.font.render("ALL CITIES LOST - Press R", True, (255, 255, 120))
             screen.blit(label, label.get_rect(center=(WIDTH // 2, HEIGHT // 2)))
+        if self.city_warning_timer > 0 and self.city_warning:
+            warning = self.font.render(self.city_warning, True, (255, 90, 90))
+            screen.blit(warning, warning.get_rect(center=(WIDTH // 2, 48)))
 
 
 def main():
